@@ -35,7 +35,7 @@
     "n8nNodesApiVersion": 1,
     "credentials": [],
     "nodes": [
-      "dist/nodes/ExampleNode/ExampleNode.node.js"
+      "dist/nodes/YoutubeTranscriptNode/YoutubeTranscriptNode.node.js"
     ]
   },
   "devDependencies": {
