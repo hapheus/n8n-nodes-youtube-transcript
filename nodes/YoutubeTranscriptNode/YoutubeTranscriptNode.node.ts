@@ -12,6 +12,7 @@ export class YoutubeTranscriptNode implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Youtube Transcript',
 		name: 'youtubeTranscriptNode',
+		// eslint-disable-next-line n8n-nodes-base/node-class-description-icon-not-svg
 		icon: 'file:youTube.png',
 		group: ['transform'],
 		version: 1,
@@ -23,17 +24,17 @@ export class YoutubeTranscriptNode implements INodeType {
 		outputs: ['main'],
 		properties: [
 			{
-				displayName: 'Youtube Video Id or Url',
+				displayName: 'Youtube Video ID or Url',
 				name: 'youtubeId',
 				type: 'string',
 				default: '',
-				placeholder: 'Youtube Video Id or Url'
+				placeholder: 'Youtube Video ID or Url'
 			},
 			{
-				displayName: 'Return merged text',
+				displayName: 'Return Merged Text',
 				name: 'returnMergedText',
 				type: 'boolean',
-				default: 'false',
+				default: false,
 			},
 		],
 	};
