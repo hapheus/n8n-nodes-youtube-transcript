@@ -5,10 +5,5 @@ tmp
 dist
 npm-debug.log*
 yarn.lock
-.vscode/launch.json
-/.idea/inspectionProfiles/Project_Default.xml
-/.idea/.gitignore
-/.idea/modules.xml
-/.idea/n8n-nodes-youtube-transcript.iml
-/.idea/php.xml
-/.idea/vcs.xml
+.vscode
+/.idea
