@@ -1,4 +1,4 @@
-# n8n-nodes-youtube-transcipt
+# n8n-nodes-youtube-transcript
 
 This is an n8n community node. It lets you use download transcript of youtube videos in your n8n workflows.
 
