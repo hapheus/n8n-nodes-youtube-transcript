@@ -5,8 +5,7 @@ import {
 	INodeTypeDescription,
 	NodeOperationError,
 } from 'n8n-workflow';
-
-import {YoutubeTranscript} from "youtube-transcript";
+import {YoutubeTranscript} from 'youtube-transcript';
 
 export class YoutubeTranscriptNode implements INodeType {
 	description: INodeTypeDescription = {
@@ -43,36 +42,36 @@ export class YoutubeTranscriptNode implements INodeType {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
 
-		let item: INodeExecutionData;
 		let youtubeId: string;
 		let returnMergedText: boolean;
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 
 			try {
-
 				youtubeId = this.getNodeParameter('youtubeId', itemIndex, '') as string;
 				returnMergedText = this.getNodeParameter('returnMergedText', itemIndex, false) as boolean;
 
 				let transcript = await YoutubeTranscript.fetchTranscript(youtubeId);
 
 				if (returnMergedText) {
-					item = items[itemIndex];
-
 					let text = '';
 					for (const line of transcript) {
 						text += line.text + ' ';
 					}
-					item.json.text = text;
-					returnData.push(item);
+					returnData.push({
+						json: {
+							"text": text,
+						},
+						pairedItem: {item: itemIndex},
+					});
 				} else {
 					const outputItems = transcript.map(chunk => ({
 						json: {
-							"text": chunk.text,
-							"offset": chunk.offset,
-							"duration": chunk.duration
+							'text': chunk.text,
+							'offset': chunk.offset,
+							'duration': chunk.duration
 						},
-						pairedItem: { item: itemIndex },
+						pairedItem: {item: itemIndex},
 					}));
 					for (const item of outputItems) {
 						returnData.push(item);
