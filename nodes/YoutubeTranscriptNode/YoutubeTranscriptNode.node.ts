@@ -60,6 +60,7 @@ export class YoutubeTranscriptNode implements INodeType {
 					}
 					returnData.push({
 						json: {
+							"youtubeId": youtubeId,
 							"text": text,
 						},
 						pairedItem: {item: itemIndex},
@@ -67,6 +68,7 @@ export class YoutubeTranscriptNode implements INodeType {
 				} else {
 					const outputItems = transcript.map(chunk => ({
 						json: {
+							'youtubeId': youtubeId,
 							'text': chunk.text,
 							'offset': chunk.offset,
 							'duration': chunk.duration
