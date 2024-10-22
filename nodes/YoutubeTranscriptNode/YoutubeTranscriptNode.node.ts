@@ -5,7 +5,7 @@ import {
 	INodeTypeDescription,
 	NodeOperationError,
 } from 'n8n-workflow';
-import { YoutubeTranscript } from 'youtube-transcript';
+import { getSubtitles } from 'youtube-captions-scraper';
 
 export class YoutubeTranscriptNode implements INodeType {
 	description: INodeTypeDescription = {
@@ -30,6 +30,23 @@ export class YoutubeTranscriptNode implements INodeType {
 				placeholder: 'Youtube Video ID or Url',
 			},
 			{
+				displayName: 'Language',
+				name: 'language',
+				type: 'string',
+				default: 'en',
+				description: 'Enter the language code (for example, "en" for English)',
+				placeholder: 'language code ',
+			},
+			{
+				displayName: 'Fallback Language',
+				name: 'fallbackLanguage',
+				type: 'string',
+				default: 'en',
+				description:
+					'Enter the fallback language code (for example, "en" for English) to be used if the video does not support the selected language',
+				placeholder: 'fallback language code',
+			},
+			{
 				displayName: 'Return Merged Text',
 				name: 'returnMergedText',
 				type: 'boolean',
@@ -44,13 +61,28 @@ export class YoutubeTranscriptNode implements INodeType {
 
 		let youtubeId: string;
 		let returnMergedText: boolean;
+		let language: string;
+		let fallbackLanguage: string;
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 			try {
 				youtubeId = this.getNodeParameter('youtubeId', itemIndex, '') as string;
 				returnMergedText = this.getNodeParameter('returnMergedText', itemIndex, false) as boolean;
+				language = this.getNodeParameter('language', itemIndex, 'en') as string;
+				fallbackLanguage = this.getNodeParameter('fallbackLanguage', itemIndex, 'en') as string;
 
-				let transcript = await YoutubeTranscript.fetchTranscript(youtubeId);
+				let transcript;
+				try {
+					transcript = await getSubtitles({
+						videoID: youtubeId,
+						lang: language,
+					});
+				} catch (e) {
+					transcript = await getSubtitles({
+						videoID: youtubeId,
+						lang: fallbackLanguage,
+					});
+				}
 
 				if (returnMergedText) {
 					let text = '';
@@ -65,12 +97,12 @@ export class YoutubeTranscriptNode implements INodeType {
 						pairedItem: { item: itemIndex },
 					});
 				} else {
-					const outputItems = transcript.map((chunk) => ({
+					const outputItems = transcript.map((chunk: any) => ({
 						json: {
 							youtubeId: youtubeId,
 							text: chunk.text,
-							offset: chunk.offset,
-							duration: chunk.duration,
+							offset: chunk.start,
+							duration: chunk.dur,
 						},
 						pairedItem: { item: itemIndex },
 					}));
