@@ -5,7 +5,7 @@ import {
 	INodeTypeDescription,
 	NodeOperationError,
 } from 'n8n-workflow';
-import {YoutubeTranscript} from 'youtube-transcript';
+import { YoutubeTranscript } from 'youtube-transcript';
 
 export class YoutubeTranscriptNode implements INodeType {
 	description: INodeTypeDescription = {
@@ -27,7 +27,7 @@ export class YoutubeTranscriptNode implements INodeType {
 				name: 'youtubeId',
 				type: 'string',
 				default: '',
-				placeholder: 'Youtube Video ID or Url'
+				placeholder: 'Youtube Video ID or Url',
 			},
 			{
 				displayName: 'Return Merged Text',
@@ -46,7 +46,6 @@ export class YoutubeTranscriptNode implements INodeType {
 		let returnMergedText: boolean;
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
-
 			try {
 				youtubeId = this.getNodeParameter('youtubeId', itemIndex, '') as string;
 				returnMergedText = this.getNodeParameter('returnMergedText', itemIndex, false) as boolean;
@@ -60,27 +59,28 @@ export class YoutubeTranscriptNode implements INodeType {
 					}
 					returnData.push({
 						json: {
-							"text": text,
+							youtubeId: youtubeId,
+							text: text,
 						},
-						pairedItem: {item: itemIndex},
+						pairedItem: { item: itemIndex },
 					});
 				} else {
-					const outputItems = transcript.map(chunk => ({
+					const outputItems = transcript.map((chunk) => ({
 						json: {
-							'text': chunk.text,
-							'offset': chunk.offset,
-							'duration': chunk.duration
+							youtubeId: youtubeId,
+							text: chunk.text,
+							offset: chunk.offset,
+							duration: chunk.duration,
 						},
-						pairedItem: {item: itemIndex},
+						pairedItem: { item: itemIndex },
 					}));
 					for (const item of outputItems) {
 						returnData.push(item);
 					}
 				}
-
 			} catch (error) {
 				if (this.continueOnFail()) {
-					items.push({json: this.getInputData(itemIndex)[0].json, error, pairedItem: itemIndex});
+					items.push({ json: this.getInputData(itemIndex)[0].json, error, pairedItem: itemIndex });
 				} else {
 					if (error.context) {
 						error.context.itemIndex = itemIndex;
