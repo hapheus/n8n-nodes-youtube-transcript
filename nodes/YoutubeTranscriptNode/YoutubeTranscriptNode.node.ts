@@ -1,4 +1,5 @@
 import {
+	ApplicationError,
 	IExecuteFunctions,
 	INodeExecutionData,
 	INodeType,
@@ -70,6 +71,19 @@ export class YoutubeTranscriptNode implements INodeType {
 				returnMergedText = this.getNodeParameter('returnMergedText', itemIndex, false) as boolean;
 				language = this.getNodeParameter('language', itemIndex, 'en') as string;
 				fallbackLanguage = this.getNodeParameter('fallbackLanguage', itemIndex, 'en') as string;
+
+				const urlRegex = /^(http(s)?:\/\/)?((w){3}.)?youtu(be|.be)?(\.com)?\/.+/;
+
+				if (urlRegex.test(youtubeId)) {
+					const url = new URL(youtubeId);
+					const v = url.searchParams.get('v');
+					if (!v) {
+						throw new ApplicationError(
+							`The provided URL doesn't contain a valid YouTube video identifier. URL: ${youtubeId}`,
+						);
+					}
+					youtubeId = v;
+				}
 
 				let transcript;
 				try {
