@@ -6,7 +6,9 @@ import {
 	INodeTypeDescription,
 	NodeOperationError,
 } from 'n8n-workflow';
-import { getSubtitles } from 'youtube-captions-scraper';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { Browser, Page } from 'puppeteer';
 
 export class YoutubeTranscriptNode implements INodeType {
 	description: INodeTypeDescription = {
@@ -30,47 +32,65 @@ export class YoutubeTranscriptNode implements INodeType {
 				default: '',
 				placeholder: 'Youtube Video ID or Url',
 			},
-			{
-				displayName: 'Language',
-				name: 'language',
-				type: 'string',
-				default: 'en',
-				description: 'Enter the language code (for example, "en" for English)',
-				placeholder: 'language code ',
-			},
-			{
-				displayName: 'Fallback Language',
-				name: 'fallbackLanguage',
-				type: 'string',
-				default: 'en',
-				description:
-					'Enter the fallback language code (for example, "en" for English) to be used if the video does not support the selected language',
-				placeholder: 'fallback language code',
-			},
-			{
-				displayName: 'Return Merged Text',
-				name: 'returnMergedText',
-				type: 'boolean',
-				default: false,
-			},
 		],
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+		puppeteer.use(StealthPlugin());
+
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
 
 		let youtubeId: string;
-		let returnMergedText: boolean;
-		let language: string;
-		let fallbackLanguage: string;
+
+		const getTranscriptFromYoutube = async function (youtubeId: string) {
+			const browser: Browser = await puppeteer.launch({
+				headless: true,
+				ignoreDefaultArgs: ['--enable-automation'],
+			});
+			const page: Page = await browser.newPage();
+			const url = `https://www.youtube.com/watch?v=${youtubeId}`;
+
+			try {
+				await page.goto(url, { waitUntil: 'domcontentloaded' });
+
+				await page.evaluate(() => {
+					const cookieButton = document.querySelector<HTMLButtonElement>(
+						'button[aria-label*=cookies]',
+					);
+					cookieButton?.click();
+				});
+
+				await page.waitForSelector('ytd-video-description-transcript-section-renderer button', {
+					timeout: 10_000,
+				});
+				await page.evaluate(() => {
+					const transcriptButton = document.querySelector<HTMLButtonElement>(
+						'ytd-video-description-transcript-section-renderer button',
+					);
+					transcriptButton?.click();
+				});
+
+				await page.waitForSelector('#segments-container', { timeout: 10_000 });
+
+				const transcript = await page.evaluate(() => {
+					return Array.from(document.querySelectorAll('#segments-container yt-formatted-string'))
+						.map((element) => element.textContent?.trim() || '')
+						.filter((text) => text !== '');
+				});
+
+				return transcript;
+			} catch (error) {
+				throw new ApplicationError(`Failed to extract transcript: ${error.message}`);
+			} finally {
+				await page.close();
+				await browser.close();
+			}
+		};
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 			try {
 				youtubeId = this.getNodeParameter('youtubeId', itemIndex, '') as string;
-				returnMergedText = this.getNodeParameter('returnMergedText', itemIndex, false) as boolean;
-				language = this.getNodeParameter('language', itemIndex, 'en') as string;
-				fallbackLanguage = this.getNodeParameter('fallbackLanguage', itemIndex, 'en') as string;
 
 				const urlRegex = /^(http(s)?:\/\/)?((w){3}.)?youtu(be|.be)?(\.com)?\/.+/;
 
@@ -85,45 +105,19 @@ export class YoutubeTranscriptNode implements INodeType {
 					youtubeId = v;
 				}
 
-				let transcript;
-				try {
-					transcript = await getSubtitles({
-						videoID: youtubeId,
-						lang: language,
-					});
-				} catch (e) {
-					transcript = await getSubtitles({
-						videoID: youtubeId,
-						lang: fallbackLanguage,
-					});
-				}
+				const transcript = await getTranscriptFromYoutube(youtubeId);
 
-				if (returnMergedText) {
-					let text = '';
-					for (const line of transcript) {
-						text += line.text + ' ';
-					}
-					returnData.push({
-						json: {
-							youtubeId: youtubeId,
-							text: text,
-						},
-						pairedItem: { item: itemIndex },
-					});
-				} else {
-					const outputItems = transcript.map((chunk: any) => ({
-						json: {
-							youtubeId: youtubeId,
-							text: chunk.text,
-							offset: chunk.start,
-							duration: chunk.dur,
-						},
-						pairedItem: { item: itemIndex },
-					}));
-					for (const item of outputItems) {
-						returnData.push(item);
-					}
+				let text = '';
+				for (const line of transcript) {
+					text += line + ' ';
 				}
+				returnData.push({
+					json: {
+						youtubeId: youtubeId,
+						text: text,
+					},
+					pairedItem: { item: itemIndex },
+				});
 			} catch (error) {
 				if (this.continueOnFail()) {
 					items.push({ json: this.getInputData(itemIndex)[0].json, error, pairedItem: itemIndex });

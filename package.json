@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-youtube-transcript",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "download transcript of youtube videos in your n8n workflows",
   "keywords": [
     "n8n-community-node-package",
@@ -52,6 +52,8 @@
     "n8n-workflow": "*"
   },
   "dependencies": {
-    "youtube-captions-scraper": "^2.0.3"
+    "puppeteer": "^23.6.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
