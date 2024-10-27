@@ -48,6 +48,11 @@ For more detailed instructions and troubleshooting, refer to the official [Puppe
 
 	**Important**: Not all YouTube videos have a transcript available.
 
+### Supported URLs
+
+This node supports extracting transcripts from YouTube videos using both `youtube.com/watch?v=example` and `youtu.be/example` URL formats. Simply provide the video URL or ID in your n8n workflow, and the node will handle the rest.
+
+
 ## Contributions
 
 Pull requests are welcome! If you encounter any issues or have suggestions for improvements:

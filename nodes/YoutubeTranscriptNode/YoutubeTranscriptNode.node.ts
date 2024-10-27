@@ -37,33 +37,53 @@ export class YoutubeTranscriptNode implements INodeType {
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		puppeteer.use(StealthPlugin());
-
-		const items = this.getInputData();
-		const returnData: INodeExecutionData[] = [];
-
-		let youtubeId: string;
+		const checkBrowserWorks = async function () {
+			let browser: Browser | null = null;
+			try {
+				browser = await puppeteer.launch({
+					headless: true,
+					ignoreDefaultArgs: ['--enable-automation'],
+				});
+			} catch (error) {
+				throw new ApplicationError(`Failed to launch the browser: ${error.message}`);
+			} finally {
+				if (browser) await browser.close();
+			}
+		};
 
 		const getTranscriptFromYoutube = async function (youtubeId: string) {
-			const browser: Browser = await puppeteer.launch({
-				headless: true,
-				ignoreDefaultArgs: ['--enable-automation'],
-			});
-			const page: Page = await browser.newPage();
-			const url = `https://www.youtube.com/watch?v=${youtubeId}`;
-
+			let browser: Browser | null = null;
+			let page: Page | null = null;
 			try {
+				browser = await puppeteer.launch({
+					headless: true,
+					ignoreDefaultArgs: ['--enable-automation'],
+				});
+
+				page = await browser.newPage();
+
+				const url = `https://www.youtube.com/watch?v=${youtubeId}`;
 				await page.goto(url, { waitUntil: 'domcontentloaded' });
 
 				await page.evaluate(() => {
 					const cookieButton = document.querySelector<HTMLButtonElement>(
-						'button[aria-label*=cookies]',
+						'button[aria-label*="cookie"], button[aria-label*="cookies"]',
 					);
 					cookieButton?.click();
 				});
 
-				await page.waitForSelector('ytd-video-description-transcript-section-renderer button', {
-					timeout: 10_000,
-				});
+				const transcriptButtonAvailable = await page
+					.waitForSelector('ytd-video-description-transcript-section-renderer button', {
+						timeout: 10_000,
+					})
+					.catch(() => null);
+
+				if (!transcriptButtonAvailable) {
+					throw new ApplicationError(
+						`The video with ID ${youtubeId} either does not exist or does not have a transcript available. Please check the video URL or try again later.`,
+					);
+				}
+
 				await page.evaluate(() => {
 					const transcriptButton = document.querySelector<HTMLButtonElement>(
 						'ytd-video-description-transcript-section-renderer button',
@@ -81,12 +101,29 @@ export class YoutubeTranscriptNode implements INodeType {
 
 				return transcript;
 			} catch (error) {
-				throw new ApplicationError(`Failed to extract transcript: ${error.message}`);
+				if (error instanceof ApplicationError) {
+					throw error;
+				} else {
+					throw new ApplicationError(`Failed to extract transcript: ${error.message}`);
+				}
 			} finally {
-				await page.close();
-				await browser.close();
+				if (page) await page.close();
+				if (browser) await browser.close();
 			}
 		};
+
+		try {
+			await checkBrowserWorks();
+		} catch (error) {
+			throw new NodeOperationError(this.getNode(), error, {
+				message: 'Failed to launch the browser before processing.',
+			});
+		}
+
+		const items = this.getInputData();
+		const returnData: INodeExecutionData[] = [];
+
+		let youtubeId: string;
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 			try {
@@ -96,13 +133,18 @@ export class YoutubeTranscriptNode implements INodeType {
 
 				if (urlRegex.test(youtubeId)) {
 					const url = new URL(youtubeId);
-					const v = url.searchParams.get('v');
-					if (!v) {
-						throw new ApplicationError(
-							`The provided URL doesn't contain a valid YouTube video identifier. URL: ${youtubeId}`,
-						);
+
+					if (url.hostname === 'youtu.be') {
+						youtubeId = url.pathname.slice(1); // Extract the video ID from the path
+					} else {
+						const v = url.searchParams.get('v');
+						if (!v) {
+							throw new ApplicationError(
+								`The provided URL doesn't contain a valid YouTube video identifier. URL: ${youtubeId}`,
+							);
+						}
+						youtubeId = v;
 					}
-					youtubeId = v;
 				}
 
 				const transcript = await getTranscriptFromYoutube(youtubeId);
