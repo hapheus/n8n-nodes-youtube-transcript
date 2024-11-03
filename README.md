@@ -40,6 +40,20 @@ To use this node, Puppeteer must be installed and configured on your n8n instanc
 2. **Running in Docker**:
 	 If you use Docker, ensure Puppeteer can run properly by setting up any necessary dependencies. Make sure to adjust the `PUPPETEER_EXECUTABLE_PATH` if you want to use a custom Chrome/Chromium binary path.
 
+   On n8n (pristine) self hosted docker image, run the following:
+   
+	```bash
+	docker exec -it -u root n8n /bin/sh -c "apk update && apk add --no-cache nmap && echo @edge http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && echo @edge http://nl.alpinelinux.org/alpine/edge/main >> /etc/apk/repositories && apk update && apk upgrade && apk add --no-cache udev chromium harfbuzz freetype ttf-freefont nss"
+	```
+
+	Set the following environment variables:
+
+	```bash
+ 	PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ 	PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+	```
+ 
+
 For more detailed instructions and troubleshooting, refer to the official [Puppeteer documentation](https://pptr.dev/).
 
 ## Operations
