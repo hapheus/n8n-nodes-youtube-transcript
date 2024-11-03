@@ -56,6 +56,45 @@ To use this node, Puppeteer must be installed and configured on your n8n instanc
 
 For more detailed instructions and troubleshooting, refer to the official [Puppeteer documentation](https://pptr.dev/).
 
+### Example Docker Usage
+
+A sample `Dockerfile` is provided in the `examples/docker` directory. This Dockerfile sets up a container with **Puppeteer** and **Chromium** pre-installed, allowing you to run **n8n-nodes-youtube-transcript and other nodes that require Puppeteer**.
+
+**Note**: The `n8n-nodes-youtube-transcript` plugin itself is not installed within the Docker container by default; you’ll need to install it manually.
+
+#### Building and running the Docker Image
+
+To build the Docker image, navigate to the `examples/docker` directory and run the following command:
+
+**Build the Docker Image**
+```bash
+cd examples/docker
+docker build -t n8n-with-puppeteer .
+```
+
+**Run the Docker Image**
+```bash
+docker run -d -p 5678:5678 -v ./data/n8n:/home/node/.n8n n8n-with-puppeteer
+```
+This command does the following:
+
+-d: Runs the container in the background as a daemon.
+-p 5678:5678: Maps port 5678 on the container to port 5678 on your host machine (localhost).
+-v ./data/n8n:/home/node/.n8n: Shares (or "mounts") the local directory ./data/n8n with the container's /home/node/.n8n directory.
+
+#### Docker Compose Setup
+
+For convenience, a `docker-compose.yml` file is provided in the `examples/docker-compose` directory. This Compose setup uses the custom Dockerfile from this project and sets up a **PostgreSQL** database as the backend for n8n. This makes it easy to deploy both services together with one command.
+
+### Using Docker Compose
+
+1. **Navigate to the directory** containing the `docker-compose.yml` file:
+
+ ```bash
+cd examples/docker-compose
+docker-compose up -d 
+```
+
 ## Operations
 
 * **Download YouTube Transcript**: Extracts the transcript of a specified YouTube video and makes it available in your workflow, either as plain text or JSON.

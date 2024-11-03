@@ -1,0 +1,30 @@
+services:
+  database:
+    image: postgis/postgis:13-master
+    volumes:
+      - ./data/database:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: "docker"
+      POSTGRES_PASSWORD: "super.Secret_Pa55word"
+      POSTGRES_DB: "n8n"
+
+  n8n:
+    image: n8n
+    build:
+      dockerfile: ../docker/Dockerfile
+    ports:
+      - 5678:5678
+    depends_on:
+      - database
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+    environment:
+      GENERIC_TIMEZONE: "Europe/Vienna"
+      TZ: "Europe/Vienna"
+      NODE_FUNCTION_ALLOW_EXTERNAL: "*"
+      DB_TYPE: "postgresdb"
+      DB_POSTGRESDB_DATABASE: "n8n"
+      DB_POSTGRESDB_HOST: "database"
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_USER: "docker"
+      DB_POSTGRESDB_PASSWORD: "super.Secret_Pa55word"
